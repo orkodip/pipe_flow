@@ -1,0 +1,53 @@
+/*
+SOLUTION OF NAVIER STOKES EQUATION IN AXISYMMETRIC COORDINATES (R-Z)
+FINITE VOLUME DISCRETIZATION TECHNIQUE IN COLOCATED GRID
+USING BALANCED FORCE PROJECTION ALGORITHM
+THE ADVECTION SCHEME IS QUICK + FIRST ORDER UPWIND
+FDQGMRES OR BI-CGSTAB CAN BE USED TO SOLVE THE LINEAR SYSTEMS
+*/
+#include<iostream>
+#include<fstream>
+#include<cmath>
+#include<string>
+#include<csignal>
+#define EPS 1e-6
+#define SMALL 1e-8
+#define TOL 1e-6	//convergence criteria for Poisson solver
+using namespace std;
+int LC=1;	//loop condition
+void control(int n)	//signal control function
+{
+	cout<<"PROGRAM INTERUPTED!"<<endl;
+	cout<<"Enter 0 to stop: ";
+	cin>>LC;
+	if(LC==0) cout<<"STOP SIGNAL RECIEVED. PROGRAM WILL STOP AFTER SIMULATING CURRENT TIME-STEP."<<endl;
+	else {LC=1; cout<<"SIMULATION CONTINUES."<<endl;}
+}
+const int I=32,J=320;	//no of grids in i and j directions
+const double RADIUS=0.5,HEIGHT=5.0;	//domain size
+#include "cfd_solvers.h"
+#include "mbase.cpp"
+#include "GMG2.cpp"
+#include "MG_FDQGMRES.cpp"
+//#include "MG_BICGSTAB.cpp"
+#include "NS_g.cpp"
+int main()
+{
+	signal(SIGINT,control);	//define signal and its function (FOR MANUALLY CONTROLLING THE PROGRAM DURING RUNTIME)
+	int CNT=0;
+	NS ms;
+	ms.MBASE::ini(CNT,10.0,1.0,2e-4);	//count,rho,mu,dt
+	ms.grid_write();
+	for(int COUNT=CNT;(LC && (COUNT<20000));COUNT++)	//manually controlled loop
+	{
+		ms.NS::solve();
+		if((((COUNT+1)%10000)==0)||(COUNT==0))
+		{
+			ms.max_CFL();
+			ms.write(COUNT+1);
+			//ms.write_s(COUNT+1);
+			//ms.write_adv(COUNT+1);
+		}
+	}
+	return 0;
+}
